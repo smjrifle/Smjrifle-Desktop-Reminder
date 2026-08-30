@@ -1,50 +1,142 @@
-# 💧 AquaPal - Desktop Water Reminder
+# 💧 Smjrifle Desktop Reminder
 
-**AquaPal** is a lightweight, modern Windows 11 desktop assistant designed to help you stay properly hydrated throughout your busy workday. Built completely in Python, AquaPal runs unobtrusively in the background and surfaces as a beautiful, compact toast notification featuring a custom-animated character to remind you when it's time to take a drink.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python Version](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)]()
+[![Release](https://img.shields.io/badge/Release-v1.0.0-orange.svg)]()
+
+> **Smjrifle Desktop Reminder** is a cross-platform desktop pet companion and wellness assistant. A hand-drawn animated pixel mascot walks directly onto your desktop screen and prompts you with a floating speech bubble to drink water, fix your posture, or take wellness breaks.
 
 ---
 
 ## ✨ Features
 
-* **Windows 11 Native Aesthetic:** Features a beautifully styled, compact dark acrylic notification tray theme (`380x120px`) that aligns seamlessly with modern operating system notifications.
-* **Animated Hydration Buddy:** Displays a seamless, loopable animated character to bring visual charm to your daily wellness routine.
-* **Flexible Timing Configurations:** Pick your preferred custom tracking intervals (e.g., Every 30 Minutes or Every 1 Hour) right from an intuitive startup configuration deck.
-* **Interactive Control Blocks:** Includes quick-action mechanics allowing you to log your drink instantly or trigger a **10-minute snooze extension** loop if you are away from your desk.
-* **Zero Distraction Mode:** Keeps your terminal and command screens hidden, running quietly in your device background environments.
+- 🚶 **True Floating Desktop Companion**:
+  - The pixel character glides directly onto your screen with smooth easing curves (`OutCubic`).
+  - 100% transparent background with zero rigid box enclosures or borders.
+- 💬 **Acrylic Glassmorphism Speech Bubble**:
+  - Displays context-aware action buttons: **`✓ I Drank Water!`** (for hydration) or **`✓ Completed`** (for wellness).
+  - Quick **`⏰ Snooze (10m)`** and direct settings shortcut.
+- 👥 **Companion Mascots**:
+  - 🎾 **Aqua Athlete (Tennis)**: Hand-drawn 8-frame walking & drinking cycle with animated water droplets (`💧✨`) and celebration star (`⭐`).
+  - ⚽ **Striker #7 (CR7 Tribute)**: Athletic soccer striker companion in the red #7 kit.
+- 🔥 **Daily Streak Tracker & Productivity Stats**:
+  - Tracks consecutive daily streaks and total logged breaks.
+- 📝 **Multi-Reminder Management (CRUD)**:
+  - Create and customize reminders (Hydration, 20-20-20 Eye Rest, Posture Check, Stretch).
+  - Delivery modes: Sequential cycle or randomized picks.
+- 🖥 **Cross-Platform Native System Tray**:
+  - Runs unobtrusively in the macOS Menu Bar, Windows System Tray, or Linux notification area with live countdown timers.
 
 ---
 
-## 🛠️ Technology Stack
+## 🚀 Quick Start
 
-* **Language:** Python 
-* **UI Framework:** PyQt6 (for modern UI component structures and layouts)
-* **Deployment Pipeline:** PyInstaller (compiled down to a standalone Windows `.exe`)
+### 1. Clone the Repository
 
----
-
-## 🚀 Getting Started (For Users)
-
-If you just want to run the application on your computer:
-
-1. Download the executable file from the latest release bundle.
-2. Ensure that your custom `character.gif` animation file rests directly in the **same directory folder** right next to `aquapal.exe`.
-3. Double-click `aquapal.exe`, select your timing window interval rule from the options menu dropdown, and press **Start AquaPal**.
-
----
-
-## 💻 Development & Building from Source
-
-If you want to tweak the code or build the project directly from your terminal:
-
-### 1. Requirements Installation
+**From GitHub:**
 ```bash
-pip install PyQt6 pyinstaller
+git clone https://github.com/smjrifle/Smjrifle-Desktop-Reminder.git
+cd Smjrifle-Desktop-Reminder
+```
 
-### 2. Running Locally
- 
-python aquapal.py
-### 3. Compiling Down to a Standalone Executable
-To convert the script into a single, clean .exe application without exposing a background terminal prompt shell:
- 
-pyinstaller --noconsole --onefile aquapal.py
-⚠️ Important Deployment Note: Once PyInstaller compiles the code framework down into your root directory build maps, look inside the newly generated dist/ project folder and manually copy/paste your character.gif file right beside the executable.
+**From GitLab:**
+```bash
+git clone https://gitlab.com/smjrifle/smjrifle-desktop-reminder.git
+cd smjrifle-desktop-reminder
+```
+
+### 2. Install Dependencies
+
+```bash
+# Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install requirements
+pip install -r requirements.txt
+```
+
+### 3. Run the App
+
+```bash
+python main.py
+```
+
+---
+
+## 📦 Standalone macOS App
+
+You can run or install the pre-built standalone macOS application directly without needing Python:
+
+1. Download or locate `dist/SmjrifleReminder-macOS.zip` (or `dist/SmjrifleReminder.app`).
+2. Unzip and drag `SmjrifleReminder.app` into your **`/Applications`** folder.
+3. Double-click to launch!
+
+### Building from Source with PyInstaller:
+
+#### 🍎 macOS
+```bash
+pyinstaller --noconsole --windowed \
+  --name "SmjrifleReminder" \
+  --icon "icon.icns" \
+  --add-data "character.gif:." \
+  --add-data "icon.png:." \
+  --add-data "icon.icns:." \
+  --add-data "assets:assets" \
+  -y --clean \
+  main.py
+```
+
+#### 🪟 Windows
+```cmd
+pyinstaller --noconsole --onefile ^
+  --name "SmjrifleReminder" ^
+  --icon "icon.ico" ^
+  --add-data "character.gif;." ^
+  --add-data "icon.png;." ^
+  --add-data "assets;assets" ^
+  -y --clean ^
+  main.py
+```
+
+#### 🐧 Linux
+```bash
+pyinstaller --noconsole --onefile \
+  --name "smjrifle-reminder" \
+  --icon "icon.png" \
+  --add-data "character.gif:." \
+  --add-data "icon.png:." \
+  --add-data "assets:assets" \
+  -y --clean \
+  main.py
+```
+
+---
+
+## 🌐 Dual Public Release (GitHub & GitLab)
+
+To sync and push your repository to both **GitHub** and **GitLab**:
+
+```bash
+# 1. Stage and commit your changes
+git add .
+git commit -m "feat: release Smjrifle Desktop Reminder v1.0.0"
+
+# 2. Configure GitHub remote
+git remote add github https://github.com/smjrifle/Smjrifle-Desktop-Reminder.git
+
+# 3. Configure GitLab remote
+git remote add gitlab git@gitlab.com:smjrifle/smjrifle-desktop-reminder.git
+
+# 4. Push to both platforms
+git push -u github main
+git push -u gitlab main
+```
+
+---
+
+## 🛡️ License & Originality
+
+- **License**: [MIT License](LICENSE) — Copyright (c) 2026 Smjrifle.
+- **Originality**: All source code, application architecture, UI components, and pixel sprite sequences were crafted specifically for this project with zero proprietary or third-party copyrighted assets.
