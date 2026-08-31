@@ -1738,18 +1738,29 @@ class SmjrifleReminderApp(QMainWindow):
         quit_action.triggered.connect(self.quit_app)
         self.tray_menu.addAction(quit_action)
 
-        self.tray_icon.setContextMenu(self.tray_menu)
+        if sys.platform != "darwin":
+            self.tray_icon.setContextMenu(self.tray_menu)
         self.tray_icon.activated.connect(self.on_tray_activated)
         self.tray_icon.show()
 
     def on_tray_activated(self, reason):
-        # On macOS, clicking the menu bar icon natively opens the context menu.
-        # Only trigger direct window activation on DoubleClick (or Trigger on Windows/Linux)
-        # to prevent AppKit NSMenuTrackingSession event collisions and crashes.
-        if sys.platform != "darwin" and reason == QSystemTrayIcon.ActivationReason.Trigger:
-            self.show_and_activate()
-        elif reason == QSystemTrayIcon.ActivationReason.DoubleClick:
-            self.show_and_activate()
+        if not hasattr(self, "tray_icon") or not hasattr(self, "tray_menu"):
+            return
+        if sys.platform == "darwin":
+            # On macOS, popup the QMenu directly at the status item position
+            # to avoid libqcocoa NSMenuTrackingSession -[NSEvent clickCount] crash.
+            if reason in (QSystemTrayIcon.ActivationReason.Trigger, QSystemTrayIcon.ActivationReason.Context):
+                try:
+                    geom = self.tray_icon.geometry()
+                    pos = geom.bottomLeft() if not geom.isNull() and geom.isValid() else QCursor.pos()
+                    self.tray_menu.popup(pos)
+                except Exception:
+                    self.tray_menu.popup(QCursor.pos())
+            elif reason == QSystemTrayIcon.ActivationReason.DoubleClick:
+                self.show_and_activate()
+        else:
+            if reason in (QSystemTrayIcon.ActivationReason.Trigger, QSystemTrayIcon.ActivationReason.DoubleClick):
+                self.show_and_activate()
 
     def toggle_pause(self):
         self.is_paused = not self.is_paused
