@@ -14,8 +14,8 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
         include:
           - os: macos-latest
             artifact_name: SmjrifleReminder-macOS.zip
@@ -34,7 +34,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       - name: Install Dependencies
         run: |
@@ -52,10 +51,9 @@ jobs:
       # --- Windows Build ---
       - name: Build Windows Standalone Executable
         if: runner.os == 'Windows'
-        shell: cmd
         run: |
           pyinstaller --noconsole --onefile --name "SmjrifleReminder" --icon "icon.ico" --add-data "character.gif;." --add-data "icon.png;." --add-data "icon.ico;." --add-data "assets;assets" -y --clean main.py
-          powershell Compress-Archive -Path dist/SmjrifleReminder.exe, assets, character.gif, icon.png, icon.ico, README.md, LICENSE -DestinationPath dist/SmjrifleReminder-Windows.zip
+          Compress-Archive -Path dist/SmjrifleReminder.exe, assets, character.gif, icon.png, icon.ico, README.md, LICENSE -DestinationPath dist/SmjrifleReminder-Windows.zip -Force
 
       # --- Linux Build ---
       - name: Build Linux Standalone Executable
