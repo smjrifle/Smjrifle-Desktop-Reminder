@@ -694,8 +694,8 @@ class ReminderItemWidget(QWidget):
 
     def init_ui(self):
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(12)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
 
         self.checkbox = QCheckBox()
         self.checkbox.setChecked(self.reminder.get("enabled", True))
@@ -706,8 +706,8 @@ class ReminderItemWidget(QWidget):
         icon_lbl.setStyleSheet("""
             background-color: rgba(255, 255, 255, 0.08);
             border-radius: 6px;
-            font-size: 18px;
-            padding: 4px 8px;
+            font-size: 16px;
+            padding: 3px 6px;
         """)
         layout.addWidget(icon_lbl)
 
@@ -715,7 +715,7 @@ class ReminderItemWidget(QWidget):
         text_layout.setSpacing(2)
 
         header_row = QHBoxLayout()
-        header_row.setSpacing(8)
+        header_row.setSpacing(6)
 
         title_lbl = QLabel(self.reminder.get("title", "Reminder"))
         title_lbl.setStyleSheet("font-weight: 600; font-size: 13px; color: #f4f4f5;")
@@ -725,21 +725,21 @@ class ReminderItemWidget(QWidget):
         cat_tag.setStyleSheet("""
             background-color: rgba(14, 165, 233, 0.15);
             color: #38bdf8;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 700;
-            padding: 2px 6px;
+            padding: 2px 5px;
             border-radius: 4px;
         """)
         header_row.addWidget(cat_tag)
 
         interval_min = self.reminder.get("interval_minutes", 30)
-        interval_tag = QLabel(f"⏱ Every {interval_min}m")
+        interval_tag = QLabel(f"⏱ {interval_min}m")
         interval_tag.setStyleSheet("""
             background-color: rgba(255, 255, 255, 0.06);
             color: #a1a1aa;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 600;
-            padding: 2px 6px;
+            padding: 2px 5px;
             border-radius: 4px;
         """)
         header_row.addWidget(interval_tag)
@@ -747,55 +747,56 @@ class ReminderItemWidget(QWidget):
         text_layout.addLayout(header_row)
 
         msg_preview = self.reminder.get("message", "")
-        if len(msg_preview) > 55:
-            msg_preview = msg_preview[:52] + "..."
+        if len(msg_preview) > 38:
+            msg_preview = msg_preview[:36] + "..."
         desc_lbl = QLabel(msg_preview)
-        desc_lbl.setStyleSheet("font-size: 12px; color: #a1a1aa;")
+        desc_lbl.setStyleSheet("font-size: 11px; color: #a1a1aa;")
+        desc_lbl.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         text_layout.addWidget(desc_lbl)
 
         layout.addLayout(text_layout, stretch=1)
 
-        edit_btn = QPushButton("✎")
-        edit_btn.setFixedSize(30, 30)
+        edit_btn = QPushButton("Edit")
+        edit_btn.setFixedSize(48, 26)
         edit_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        edit_btn.setToolTip("Edit Reminder")
+        edit_btn.setToolTip("Edit Reminder Settings")
         edit_btn.setStyleSheet("""
             QPushButton {
                 background: rgba(255, 255, 255, 0.08);
-                color: #e4e4e7;
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                border-radius: 6px;
-                font-size: 15px;
-                font-weight: 700;
-                font-family: -apple-system, "SF Pro Text", "Segoe UI", sans-serif;
+                color: #f4f4f5;
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 5px;
+                font-size: 11px;
+                font-weight: 600;
+                padding: 2px 6px;
             }
             QPushButton:hover {
                 background: rgba(255, 255, 255, 0.18);
                 color: #ffffff;
-                border-color: rgba(255, 255, 255, 0.25);
+                border-color: rgba(255, 255, 255, 0.28);
             }
         """)
         edit_btn.clicked.connect(lambda: self.edit_requested.emit(self.reminder["id"]))
         layout.addWidget(edit_btn)
 
-        del_btn = QPushButton("✕")
-        del_btn.setFixedSize(30, 30)
+        del_btn = QPushButton("Delete")
+        del_btn.setFixedSize(54, 26)
         del_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         del_btn.setToolTip("Delete Reminder")
         del_btn.setStyleSheet("""
             QPushButton {
-                background: rgba(239, 68, 68, 0.14);
+                background: rgba(239, 68, 68, 0.12);
                 color: #f87171;
-                border: 1px solid rgba(239, 68, 68, 0.28);
-                border-radius: 6px;
-                font-size: 13px;
-                font-weight: 800;
-                font-family: -apple-system, "SF Pro Text", "Segoe UI", sans-serif;
+                border: 1px solid rgba(239, 68, 68, 0.25);
+                border-radius: 5px;
+                font-size: 11px;
+                font-weight: 600;
+                padding: 2px 6px;
             }
             QPushButton:hover {
-                background: rgba(239, 68, 68, 0.28);
+                background: rgba(239, 68, 68, 0.25);
                 color: #ffffff;
-                border-color: rgba(239, 68, 68, 0.5);
+                border-color: rgba(239, 68, 68, 0.45);
             }
         """)
         del_btn.clicked.connect(lambda: self.delete_requested.emit(self.reminder["id"]))
@@ -916,8 +917,8 @@ class SmjrifleReminderApp(QMainWindow):
 
     def init_ui(self):
         self.setWindowTitle(APP_NAME)
-        self.setMinimumSize(580, 640)
-        self.resize(600, 660)
+        self.setMinimumSize(620, 660)
+        self.resize(640, 680)
 
         icon_path = get_asset_path("icon.png")
         if os.path.exists(icon_path):
@@ -1200,6 +1201,9 @@ class SmjrifleReminderApp(QMainWindow):
         layout.addLayout(toolbar)
 
         self.reminders_list = QListWidget()
+        self.reminders_list.setResizeMode(QListWidget.ResizeMode.Adjust)
+        self.reminders_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.reminders_list.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.reminders_list.setStyleSheet("""
             QListWidget {
                 background-color: #16161a;
@@ -1429,7 +1433,7 @@ class SmjrifleReminderApp(QMainWindow):
             widget.edit_requested.connect(self.on_edit_reminder)
             widget.delete_requested.connect(self.on_delete_reminder)
 
-            item.setSizeHint(widget.sizeHint())
+            item.setSizeHint(QSize(0, 52))
             self.reminders_list.setItemWidget(item, widget)
 
         active_count = len(self.config.get_active_reminders())
