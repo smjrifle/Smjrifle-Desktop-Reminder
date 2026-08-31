@@ -915,6 +915,9 @@ class SmjrifleReminderApp(QMainWindow):
         self.init_system_tray()
         self.init_timer()
 
+        if sys.platform == "darwin" and not self.config.show_in_dock:
+            autostart.set_dock_icon_visible(False)
+
     def init_ui(self):
         self.setWindowTitle(APP_NAME)
         self.setMinimumSize(620, 660)
@@ -1393,6 +1396,12 @@ class SmjrifleReminderApp(QMainWindow):
         self.autostart_check.toggled.connect(self.on_autostart_toggled)
         c_layout.addWidget(self.autostart_check)
 
+        if sys.platform == "darwin":
+            self.dock_check = QCheckBox("Show icon in macOS Dock (uncheck for Menu Bar only)")
+            self.dock_check.setChecked(self.config.show_in_dock)
+            self.dock_check.toggled.connect(self.on_dock_toggled)
+            c_layout.addWidget(self.dock_check)
+
         layout.addWidget(card)
 
         info_card = QFrame()
@@ -1552,6 +1561,10 @@ class SmjrifleReminderApp(QMainWindow):
                 "Smjrifle Reminder couldn't register with your system's login "
                 "items. Check the console output for details.",
             )
+
+    def on_dock_toggled(self, checked: bool):
+        self.config.show_in_dock = checked
+        autostart.set_dock_icon_visible(checked)
 
     # ---------------- Timer & Background System ----------------
 

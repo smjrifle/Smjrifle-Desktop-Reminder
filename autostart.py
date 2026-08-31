@@ -153,8 +153,22 @@ def set_autostart_enabled(enabled: bool) -> bool:
     return _linux_set_enabled(enabled)
 
 
+def set_dock_icon_visible(visible: bool) -> bool:
+    """Show or hide the macOS Dock icon dynamically at runtime based on user preference.
+    True = Regular policy (Shows in Dock & App Switcher, Default).
+    False = Accessory policy (Hides Dock icon, Menu Bar only).
+    """
+    if sys.platform != "darwin":
+        return True
+    try:
+        from AppKit import NSApplication, NSApplicationActivationPolicyRegular, NSApplicationActivationPolicyAccessory
+        policy = NSApplicationActivationPolicyRegular if visible else NSApplicationActivationPolicyAccessory
+        NSApplication.sharedApplication().setActivationPolicy_(policy)
+        return True
+    except Exception as e:
+        print(f"[Smjrifle Reminder] Could not set Dock icon visibility: {e}")
+        return False
+
+
 def hide_from_macos_dock() -> None:
-    """Helper for macOS dock presence. Handled natively via Info.plist
-    LSUIElement in frozen app bundles. Avoid dynamic runtime activation policy
-    switching to prevent Cocoa NSMenuTrackingSession event collisions."""
-    pass
+    set_dock_icon_visible(False)

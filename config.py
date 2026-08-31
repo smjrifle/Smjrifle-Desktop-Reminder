@@ -90,6 +90,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "rotation_mode": "cycle",    # "cycle" or "random"
     "position_mode": "auto",     # "auto", "top-right", "bottom-right", "top-left", "bottom-left", "center"
     "sound_enabled": True,
+    "show_in_dock": True,
     "theme": "dark_acrylic",
     "stats": {
         "today_date": str(datetime.date.today()),
@@ -242,6 +243,16 @@ class SmjrifleConfig:
     @sound_enabled.setter
     def sound_enabled(self, value: bool):
         self.data["sound_enabled"] = bool(value)
+        self.save()
+
+    @property
+    def show_in_dock(self) -> bool:
+        return bool(self.data.get("show_in_dock", True))
+
+    @show_in_dock.setter
+    def show_in_dock(self, value: bool):
+        self.data["show_in_dock"] = bool(value)
+        self.save()
 
     @property
     def reminders(self) -> List[Dict[str, Any]]:
