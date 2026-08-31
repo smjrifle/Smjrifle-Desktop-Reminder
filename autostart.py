@@ -154,14 +154,7 @@ def set_autostart_enabled(enabled: bool) -> bool:
 
 
 def hide_from_macos_dock() -> None:
-    """Switch the running app to a menu-bar-only (Accessory) activation
-    policy so no Dock icon appears. macOS only; silently does nothing on
-    other platforms or if pyobjc isn't installed (the app still runs fine,
-    it just keeps its Dock icon in that case)."""
-    if sys.platform != "darwin":
-        return
-    try:
-        from AppKit import NSApplication, NSApplicationActivationPolicyAccessory
-        NSApplication.sharedApplication().setActivationPolicy_(NSApplicationActivationPolicyAccessory)
-    except Exception as e:
-        print(f"[Smjrifle Reminder] Could not hide Dock icon (pyobjc-framework-Cocoa not installed?): {e}")
+    """Helper for macOS dock presence. Handled natively via Info.plist
+    LSUIElement in frozen app bundles. Avoid dynamic runtime activation policy
+    switching to prevent Cocoa NSMenuTrackingSession event collisions."""
+    pass

@@ -1718,7 +1718,12 @@ class SmjrifleReminderApp(QMainWindow):
         self.tray_icon.show()
 
     def on_tray_activated(self, reason):
-        if reason in (QSystemTrayIcon.ActivationReason.Trigger, QSystemTrayIcon.ActivationReason.DoubleClick):
+        # On macOS, clicking the menu bar icon natively opens the context menu.
+        # Only trigger direct window activation on DoubleClick (or Trigger on Windows/Linux)
+        # to prevent AppKit NSMenuTrackingSession event collisions and crashes.
+        if sys.platform != "darwin" and reason == QSystemTrayIcon.ActivationReason.Trigger:
+            self.show_and_activate()
+        elif reason == QSystemTrayIcon.ActivationReason.DoubleClick:
             self.show_and_activate()
 
     def toggle_pause(self):
