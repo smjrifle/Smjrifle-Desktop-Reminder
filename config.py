@@ -41,6 +41,7 @@ DEFAULT_REMINDERS = [
         "icon": "💧",
         "category": "Hydration",
         "enabled": True,
+        "interval_minutes": 30,
     },
     {
         "id": "posture",
@@ -49,6 +50,7 @@ DEFAULT_REMINDERS = [
         "icon": "🧘",
         "category": "Ergonomics",
         "enabled": True,
+        "interval_minutes": 45,
     },
     {
         "id": "eyes",
@@ -57,6 +59,7 @@ DEFAULT_REMINDERS = [
         "icon": "👀",
         "category": "Vision",
         "enabled": True,
+        "interval_minutes": 20,
     },
     {
         "id": "movement",
@@ -65,6 +68,7 @@ DEFAULT_REMINDERS = [
         "icon": "🚶",
         "category": "Activity",
         "enabled": True,
+        "interval_minutes": 60,
     },
     {
         "id": "mindfulness",
@@ -73,6 +77,7 @@ DEFAULT_REMINDERS = [
         "icon": "🌬️",
         "category": "Mindfulness",
         "enabled": True,
+        "interval_minutes": 90,
     },
 ]
 
@@ -246,6 +251,19 @@ class SmjrifleConfig:
         active = [r for r in self.reminders if r.get("enabled", True)]
         return active if active else self.reminders
 
+    def get_reminder_by_id(self, rem_id: str) -> Optional[Dict[str, Any]]:
+        return next((r for r in self.reminders if r.get("id") == rem_id), None)
+
+    def get_reminder_interval_seconds(self, reminder: Dict[str, Any]) -> int:
+        """Each reminder can run on its own cadence; falls back to the
+        global default interval for reminders saved before this existed."""
+        minutes = reminder.get("interval_minutes", self.interval_seconds // 60)
+        try:
+            minutes = int(minutes)
+        except (TypeError, ValueError):
+            minutes = self.interval_seconds // 60
+        return max(60, minutes * 60)
+
     def get_next_reminder(self) -> Dict[str, Any]:
         """Returns the next reminder according to the active rotation mode."""
         active = self.get_active_reminders()
@@ -260,7 +278,8 @@ class SmjrifleConfig:
         self.current_cycle_index = (self.current_cycle_index + 1) % len(active)
         return reminder
 
-    def add_reminder(self, title: str, message: str, icon: str = "💧", category: str = "Custom", enabled: bool = True) -> Dict[str, Any]:
+    def add_reminder(self, title: str, message: str, icon: str = "💧", category: str = "Custom",
+                      enabled: bool = True, interval_minutes: int = 30) -> Dict[str, Any]:
         new_item = {
             "id": str(uuid.uuid4())[:8],
             "title": title.strip() or "Custom Reminder",
@@ -268,12 +287,14 @@ class SmjrifleConfig:
             "icon": icon.strip() or "💧",
             "category": category.strip() or "Custom",
             "enabled": enabled,
+            "interval_minutes": max(1, int(interval_minutes)),
         }
         self.data.setdefault("reminders", []).append(new_item)
         self.save()
         return new_item
 
-    def update_reminder(self, rem_id: str, title: str, message: str, icon: str, category: str, enabled: bool) -> bool:
+    def update_reminder(self, rem_id: str, title: str, message: str, icon: str, category: str,
+                         enabled: bool, interval_minutes: int) -> bool:
         for r in self.reminders:
             if r.get("id") == rem_id:
                 r["title"] = title.strip()
@@ -281,6 +302,7 @@ class SmjrifleConfig:
                 r["icon"] = icon.strip()
                 r["category"] = category.strip() or "Custom"
                 r["enabled"] = enabled
+                r["interval_minutes"] = max(1, int(interval_minutes))
                 self.save()
                 return True
         return False

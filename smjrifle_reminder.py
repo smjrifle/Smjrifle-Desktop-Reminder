@@ -30,6 +30,7 @@ from PyQt6.QtWidgets import (
 from config import (
     SmjrifleConfig, get_config_dir, APP_NAME, AVAILABLE_CHARACTERS, DEFAULT_REMINDERS
 )
+import autostart
 
 
 def get_asset_path(filename: str) -> str:
@@ -499,7 +500,8 @@ class SmjrifleReminderPopup:
         QTimer.singleShot(1400, lambda: self.close_with_animation(self.main_app.restart_timer))
 
     def action_snooze(self):
-        self.close_with_animation(self.main_app.trigger_snooze)
+        reminder_id = self.reminder.get("id")
+        self.close_with_animation(lambda: self.main_app.trigger_snooze(reminder_id))
 
     def action_dismiss(self):
         self.close_with_animation(self.main_app.restart_timer)
@@ -602,6 +604,9 @@ class ReminderEditDialog(QDialog):
 
         layout.addLayout(row)
 
+        cat_row = QHBoxLayout()
+        cat_row.setSpacing(10)
+
         cat_layout = QVBoxLayout()
         cat_lbl = QLabel("Category / Tag")
         self.cat_input = QLineEdit()
@@ -612,7 +617,19 @@ class ReminderEditDialog(QDialog):
             self.cat_input.setText("Wellness")
         cat_layout.addWidget(cat_lbl)
         cat_layout.addWidget(self.cat_input)
-        layout.addLayout(cat_layout)
+        cat_row.addLayout(cat_layout, stretch=1)
+
+        interval_layout = QVBoxLayout()
+        interval_lbl = QLabel("Repeat Every (minutes)")
+        self.interval_input = QSpinBox()
+        self.interval_input.setRange(1, 480)
+        self.interval_input.setValue(int(self.reminder.get("interval_minutes", 30)) if self.reminder else 30)
+        self.interval_input.setFixedWidth(100)
+        interval_layout.addWidget(interval_lbl)
+        interval_layout.addWidget(self.interval_input)
+        cat_row.addLayout(interval_layout)
+
+        layout.addLayout(cat_row)
 
         msg_lbl = QLabel("Reminder Message Details")
         layout.addWidget(msg_lbl)
@@ -658,6 +675,7 @@ class ReminderEditDialog(QDialog):
             "message": msg,
             "icon": icon,
             "category": category,
+            "interval_minutes": self.interval_input.value(),
         }
         self.accept()
 
@@ -713,6 +731,18 @@ class ReminderItemWidget(QWidget):
             border-radius: 4px;
         """)
         header_row.addWidget(cat_tag)
+
+        interval_min = self.reminder.get("interval_minutes", 30)
+        interval_tag = QLabel(f"⏱ Every {interval_min}m")
+        interval_tag.setStyleSheet("""
+            background-color: rgba(255, 255, 255, 0.06);
+            color: #a1a1aa;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+        """)
+        header_row.addWidget(interval_tag)
         header_row.addStretch()
         text_layout.addLayout(header_row)
 
@@ -725,16 +755,17 @@ class ReminderItemWidget(QWidget):
 
         layout.addLayout(text_layout, stretch=1)
 
-        edit_btn = QPushButton("✏ Edit")
-        edit_btn.setFixedSize(56, 26)
+        edit_btn = QPushButton("✏️")
+        edit_btn.setFixedSize(30, 30)
+        edit_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        edit_btn.setToolTip("Edit reminder")
         edit_btn.setStyleSheet("""
             QPushButton {
                 background: rgba(255, 255, 255, 0.08);
                 color: #e4e4e7;
                 border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 4px;
-                font-size: 11px;
-                font-weight: 500;
+                border-radius: 6px;
+                font-size: 14px;
             }
             QPushButton:hover {
                 background: rgba(255, 255, 255, 0.16);
@@ -743,15 +774,17 @@ class ReminderItemWidget(QWidget):
         edit_btn.clicked.connect(lambda: self.edit_requested.emit(self.reminder["id"]))
         layout.addWidget(edit_btn)
 
-        del_btn = QPushButton("🗑")
-        del_btn.setFixedSize(30, 26)
+        del_btn = QPushButton("🗑️")
+        del_btn.setFixedSize(30, 30)
+        del_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        del_btn.setToolTip("Delete reminder")
         del_btn.setStyleSheet("""
             QPushButton {
                 background: rgba(239, 68, 68, 0.12);
                 color: #f87171;
                 border: 1px solid rgba(239, 68, 68, 0.25);
-                border-radius: 4px;
-                font-size: 12px;
+                border-radius: 6px;
+                font-size: 14px;
             }
             QPushButton:hover {
                 background: rgba(239, 68, 68, 0.25);
@@ -863,6 +896,11 @@ class SmjrifleReminderApp(QMainWindow):
         self.active_popup: Optional[SmjrifleReminderPopup] = None
         self.is_paused = False
         self.next_trigger_time: Optional[float] = None
+        # Each reminder runs on its own cadence: reminder id -> unix
+        # timestamp it's next due. A single shared timer can't express that,
+        # so scheduling is now polled once a second (see _tick) instead of
+        # one QTimer firing "the next reminder" via rotation.
+        self.next_due: Dict[str, float] = {}
 
         self.init_ui()
         self.init_system_tray()
@@ -1210,12 +1248,13 @@ class SmjrifleReminderApp(QMainWindow):
         ic_layout = QVBoxLayout(interval_card)
         ic_layout.setSpacing(12)
 
-        lbl_head = QLabel("⏰ Reminder Interval")
+        lbl_head = QLabel("⏰ Default Reminder Interval")
         lbl_head.setStyleSheet("font-weight: 700; font-size: 14px; color: #ffffff;")
         ic_layout.addWidget(lbl_head)
 
         row1 = QHBoxLayout()
-        lbl1 = QLabel("How often should Smjrifle Reminder notify you?")
+        lbl1 = QLabel("Starting interval for newly created reminders (each one can be changed individually via its own ✏️ Edit button):")
+        lbl1.setWordWrap(True)
         lbl1.setStyleSheet("color: #d4d4d8; font-size: 13px;")
         row1.addWidget(lbl1)
 
@@ -1337,6 +1376,11 @@ class SmjrifleReminderApp(QMainWindow):
         self.sound_check.toggled.connect(self.on_sound_toggled)
         c_layout.addWidget(self.sound_check)
 
+        self.autostart_check = QCheckBox("Start automatically when you log in")
+        self.autostart_check.setChecked(autostart.is_autostart_enabled())
+        self.autostart_check.toggled.connect(self.on_autostart_toggled)
+        c_layout.addWidget(self.autostart_check)
+
         layout.addWidget(card)
 
         info_card = QFrame()
@@ -1391,13 +1435,18 @@ class SmjrifleReminderApp(QMainWindow):
         self.config.save()
         active_count = len(self.config.get_active_reminders())
         self.rem_count_lbl.setText(f"Active Reminders ({active_count}/{len(self.config.reminders)})")
+        self._ensure_scheduled()
 
     def open_add_reminder_dialog(self):
         dlg = ReminderEditDialog(self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             data = dlg.result_data
-            self.config.add_reminder(data["title"], data["message"], data["icon"], data["category"], enabled=True)
+            self.config.add_reminder(
+                data["title"], data["message"], data["icon"], data["category"],
+                enabled=True, interval_minutes=data["interval_minutes"],
+            )
             self.refresh_reminders_list()
+            self._ensure_scheduled()
 
     def on_edit_reminder(self, rem_id: str):
         target = next((r for r in self.config.reminders if r["id"] == rem_id), None)
@@ -1406,8 +1455,16 @@ class SmjrifleReminderApp(QMainWindow):
         dlg = ReminderEditDialog(self, reminder=target)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             data = dlg.result_data
-            self.config.update_reminder(rem_id, data["title"], data["message"], data["icon"], data["category"], target.get("enabled", True))
+            self.config.update_reminder(
+                rem_id, data["title"], data["message"], data["icon"], data["category"],
+                target.get("enabled", True), data["interval_minutes"],
+            )
+            # The interval may have just changed -- drop any stale
+            # schedule for this reminder so it picks up the new cadence
+            # immediately instead of waiting out the old one.
+            self.next_due.pop(rem_id, None)
             self.refresh_reminders_list()
+            self._ensure_scheduled()
 
     def on_delete_reminder(self, rem_id: str):
         if len(self.config.reminders) <= 1:
@@ -1421,6 +1478,7 @@ class SmjrifleReminderApp(QMainWindow):
         )
         if reply == QMessageBox.StandardButton.Yes:
             self.config.delete_reminder(rem_id)
+            self.next_due.pop(rem_id, None)
             self.refresh_reminders_list()
 
     def reset_reminders(self):
@@ -1431,7 +1489,9 @@ class SmjrifleReminderApp(QMainWindow):
         )
         if reply == QMessageBox.StandardButton.Yes:
             self.config.reset_reminders_to_default()
+            self.next_due.clear()
             self.refresh_reminders_list()
+            self._ensure_scheduled()
 
     def on_rotation_mode_changed(self, index: int):
         self.config.rotation_mode = self.mode_combo.currentData()
@@ -1466,35 +1526,103 @@ class SmjrifleReminderApp(QMainWindow):
         self.config.sound_enabled = checked
         self.config.save()
 
+    def on_autostart_toggled(self, checked: bool):
+        ok = autostart.set_autostart_enabled(checked)
+        if not ok:
+            # Revert the checkbox without re-triggering this handler --
+            # the OS-level toggle failed (e.g. no registry/launchctl access).
+            self.autostart_check.blockSignals(True)
+            self.autostart_check.setChecked(not checked)
+            self.autostart_check.blockSignals(False)
+            QMessageBox.warning(
+                self,
+                "Couldn't Update Autostart",
+                "Smjrifle Reminder couldn't register with your system's login "
+                "items. Check the console output for details.",
+            )
+
     # ---------------- Timer & Background System ----------------
 
     def init_timer(self):
-        self.reminder_timer = QTimer(self)
-        self.reminder_timer.timeout.connect(self.show_notification)
-
+        # One shared ticker drives both the countdown display and the
+        # per-reminder due-time check -- there's no single "the interval"
+        # anymore now that each reminder can run on its own cadence, so a
+        # single QTimer-fires-in-N-seconds model can't express this.
         self.clock_ticker = QTimer(self)
-        self.clock_ticker.timeout.connect(self.update_countdown_display)
+        self.clock_ticker.timeout.connect(self._tick)
         self.clock_ticker.start(1000)
 
-        self.restart_timer()
+        self._reset_all_schedules()
+
+    def _reset_all_schedules(self):
+        """Fresh countdown for every active reminder, starting now. Used on
+        app launch and when resuming from a pause (mirrors the old
+        behavior: a pause doesn't leave a backlog of overdue reminders that
+        all fire at once the moment you resume)."""
+        now = time.time()
+        self.next_due = {
+            r["id"]: now + self.config.get_reminder_interval_seconds(r)
+            for r in self.config.get_active_reminders()
+        }
+        self._update_next_trigger_summary()
+
+    def _ensure_scheduled(self):
+        """Fill in schedules for reminders that don't have one yet (newly
+        added, just re-enabled, or just edited) and drop ones that are no
+        longer active -- without disturbing any reminder that's already
+        mid-countdown."""
+        active_ids = {r["id"] for r in self.config.get_active_reminders()}
+        self.next_due = {rid: t for rid, t in self.next_due.items() if rid in active_ids}
+        now = time.time()
+        for r in self.config.get_active_reminders():
+            if r["id"] not in self.next_due:
+                self.next_due[r["id"]] = now + self.config.get_reminder_interval_seconds(r)
+        self._update_next_trigger_summary()
+
+    def _update_next_trigger_summary(self):
+        self.next_trigger_time = min(self.next_due.values()) if self.next_due else None
 
     def restart_timer(self):
+        """Kept as the popup-close callback name other code already calls.
+        Does NOT reset every reminder's countdown -- only backfills ones
+        missing a schedule -- so finishing/dismissing one reminder never
+        resets how soon a *different* reminder is due."""
         if self.is_paused:
             return
-        interval_ms = self.config.interval_seconds * 1000
-        self.reminder_timer.stop()
-        self.reminder_timer.start(interval_ms)
-        self.next_trigger_time = time.time() + self.config.interval_seconds
-        self.update_countdown_display()
+        self._ensure_scheduled()
 
-    def trigger_snooze(self):
+    def trigger_snooze(self, reminder_id: Optional[str] = None):
         if self.is_paused:
             return
-        snooze_ms = self.config.snooze_seconds * 1000
-        self.reminder_timer.stop()
-        self.reminder_timer.start(snooze_ms)
-        self.next_trigger_time = time.time() + self.config.snooze_seconds
+        if reminder_id:
+            self.next_due[reminder_id] = time.time() + self.config.snooze_seconds
+        self._update_next_trigger_summary()
+
+    def _tick(self):
         self.update_countdown_display()
+        if self.is_paused or self.active_popup:
+            return
+
+        now = time.time()
+        # If several are due at once, the one that's been waiting longest
+        # goes first -- not insertion order, which would be arbitrary.
+        # Whichever isn't picked just stays "due" and fires immediately
+        # after this popup closes (checked again next tick), so ties never
+        # drop or overlap a reminder -- they queue up sequentially instead.
+        due_ids = sorted(
+            (rid for rid, due_at in self.next_due.items() if now >= due_at),
+            key=lambda rid: self.next_due[rid],
+        )
+        if not due_ids:
+            return
+
+        reminder = self.config.get_reminder_by_id(due_ids[0])
+        if not reminder:
+            del self.next_due[due_ids[0]]
+            return
+        self.next_due[reminder["id"]] = now + self.config.get_reminder_interval_seconds(reminder)
+        self._update_next_trigger_summary()
+        self._fire_popup(reminder)
 
     def update_countdown_display(self):
         if self.is_paused:
@@ -1512,17 +1640,24 @@ class SmjrifleReminderApp(QMainWindow):
             if hasattr(self, "tray_status_action"):
                 self.tray_status_action.setText(f"Next Reminder: {time_str}")
 
-    def show_notification(self):
-        self.reminder_timer.stop()
+    def _fire_popup(self, reminder: Dict[str, Any]):
         if self.active_popup:
             try:
                 self.active_popup.close()
             except Exception:
                 pass
-
-        reminder = self.config.get_next_reminder()
         self.active_popup = SmjrifleReminderPopup(self, reminder)
         self.active_popup.trigger_display()
+
+    def show_notification(self):
+        """Manual trigger (tray '⚡ Remind Now' / Settings 'Test
+        Notification'). Picks one reminder via the existing cycle/random
+        rotation and reschedules just that one -- every other reminder's
+        independent countdown is left untouched."""
+        reminder = self.config.get_next_reminder()
+        self.next_due[reminder["id"]] = time.time() + self.config.get_reminder_interval_seconds(reminder)
+        self._update_next_trigger_summary()
+        self._fire_popup(reminder)
 
     def init_system_tray(self):
         if not QSystemTrayIcon.isSystemTrayAvailable():
@@ -1589,7 +1724,7 @@ class SmjrifleReminderApp(QMainWindow):
     def toggle_pause(self):
         self.is_paused = not self.is_paused
         if self.is_paused:
-            self.reminder_timer.stop()
+            # _tick() already no-ops while paused; nothing to stop.
             if hasattr(self, "pause_action"):
                 self.pause_action.setText("▶ Resume Reminders")
             self.status_badge.setText("⏸ Paused")
@@ -1615,7 +1750,10 @@ class SmjrifleReminderApp(QMainWindow):
                 font-size: 11px;
                 font-weight: 700;
             """)
-            self.restart_timer()
+            # Fresh countdown for everything on resume, not a backlog of
+            # reminders that all went overdue during the pause and now fire
+            # back-to-back the instant you resume.
+            self._reset_all_schedules()
         self.update_countdown_display()
 
     def show_and_activate(self):
@@ -1655,12 +1793,25 @@ def main():
     app.setApplicationDisplayName("Smjrifle Desktop Reminder")
     app.setQuitOnLastWindowClosed(False)
 
+    # macOS: run as a menu-bar-only background app, no Dock icon. Windows and
+    # Linux need no equivalent call -- not showing the main window (below)
+    # already keeps them off the taskbar / out of a normal window list.
+    autostart.hide_from_macos_dock()
+
     icon_path = get_asset_path("icon.png")
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
 
     window = SmjrifleReminderApp()
-    window.show()
+    if hasattr(window, "tray_icon") and window.tray_icon.isVisible():
+        # Tray is available: start quietly in the background, exactly like a
+        # normal login-item run -- the dashboard opens only when requested
+        # from the tray icon.
+        window.start_and_minimize()
+    else:
+        # No system tray on this desktop environment -- fall back to a
+        # normal visible window so the app is still reachable at all.
+        window.show()
     sys.exit(app.exec())
 
 
