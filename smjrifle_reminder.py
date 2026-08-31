@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 
 from PyQt6.QtCore import (
-    Qt, QTimer, QPropertyAnimation, QEasingCurve, QPoint, QRect, QSize, pyqtSignal
+    Qt, QTimer, QPropertyAnimation, QEasingCurve, QPoint, QRect, QSize, pyqtSignal, QEvent
 )
 from PyQt6.QtGui import (
     QMovie, QIcon, QFont, QFontMetrics, QColor, QPixmap, QCursor, QAction, QPainter
@@ -914,9 +914,28 @@ class SmjrifleReminderApp(QMainWindow):
         self.init_ui()
         self.init_system_tray()
         self.init_timer()
+        self.init_dock_activation()
 
         if sys.platform == "darwin" and not self.config.show_in_dock:
             autostart.set_dock_icon_visible(False)
+
+    def init_dock_activation(self):
+        """Ensure clicking the macOS Dock icon restores and focuses the dashboard window."""
+        app_inst = QApplication.instance()
+        if app_inst:
+            app_inst.applicationStateChanged.connect(self.on_app_state_changed)
+            app_inst.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.Type.ApplicationActivate:
+            if not self.isVisible():
+                self.show_and_activate()
+        return super().eventFilter(obj, event)
+
+    def on_app_state_changed(self, state: Qt.ApplicationState):
+        if state == Qt.ApplicationState.ApplicationActive:
+            if not self.isVisible():
+                self.show_and_activate()
 
     def init_ui(self):
         self.setWindowTitle(APP_NAME)
@@ -1800,6 +1819,7 @@ class SmjrifleReminderApp(QMainWindow):
     def show_and_activate(self):
         self.update_stats_ui()
         self.refresh_character_cards()
+        self.showNormal()
         self.show()
         self.raise_()
         self.activateWindow()
