@@ -755,39 +755,47 @@ class ReminderItemWidget(QWidget):
 
         layout.addLayout(text_layout, stretch=1)
 
-        edit_btn = QPushButton("✏️")
+        edit_btn = QPushButton("✎")
         edit_btn.setFixedSize(30, 30)
         edit_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        edit_btn.setToolTip("Edit reminder")
+        edit_btn.setToolTip("Edit Reminder")
         edit_btn.setStyleSheet("""
             QPushButton {
                 background: rgba(255, 255, 255, 0.08);
                 color: #e4e4e7;
-                border: 1px solid rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.12);
                 border-radius: 6px;
-                font-size: 14px;
+                font-size: 15px;
+                font-weight: 700;
+                font-family: -apple-system, "SF Pro Text", "Segoe UI", sans-serif;
             }
             QPushButton:hover {
-                background: rgba(255, 255, 255, 0.16);
+                background: rgba(255, 255, 255, 0.18);
+                color: #ffffff;
+                border-color: rgba(255, 255, 255, 0.25);
             }
         """)
         edit_btn.clicked.connect(lambda: self.edit_requested.emit(self.reminder["id"]))
         layout.addWidget(edit_btn)
 
-        del_btn = QPushButton("🗑️")
+        del_btn = QPushButton("✕")
         del_btn.setFixedSize(30, 30)
         del_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        del_btn.setToolTip("Delete reminder")
+        del_btn.setToolTip("Delete Reminder")
         del_btn.setStyleSheet("""
             QPushButton {
-                background: rgba(239, 68, 68, 0.12);
+                background: rgba(239, 68, 68, 0.14);
                 color: #f87171;
-                border: 1px solid rgba(239, 68, 68, 0.25);
+                border: 1px solid rgba(239, 68, 68, 0.28);
                 border-radius: 6px;
-                font-size: 14px;
+                font-size: 13px;
+                font-weight: 800;
+                font-family: -apple-system, "SF Pro Text", "Segoe UI", sans-serif;
             }
             QPushButton:hover {
-                background: rgba(239, 68, 68, 0.25);
+                background: rgba(239, 68, 68, 0.28);
+                color: #ffffff;
+                border-color: rgba(239, 68, 68, 0.5);
             }
         """)
         del_btn.clicked.connect(lambda: self.delete_requested.emit(self.reminder["id"]))
